@@ -1,0 +1,17 @@
+comfyui:
+    base_path: /ComfyUI/
+    is_default: true
+    checkpoints: models/checkpoints/
+    clip: models/clip/
+    clip_vision: models/clip_vision/
+    configs: models/configs/
+    controlnet: models/controlnet/
+    diffusion_models: models/diffusion_models/
+    embeddings: models/embeddings/
+    loras: |
+        models/loras/
+        /runpod-volume/loras/
+    latent_upscale_models: models/latent_upscale_models/
+    upscale_models: models/upscale_models/
+    vae: models/vae/
+    text_encoders: models/text_encoders/

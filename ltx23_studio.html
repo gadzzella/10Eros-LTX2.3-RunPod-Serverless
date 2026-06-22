@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>LTX-2.3 · 10Eros i2v Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0f;
+            color: #e8e6ff;
+            font-family: 'DM Mono', monospace;
+            font-size: 14px;
+            padding: 0.75rem;
+            scroll-behavior: smooth;
+        }
+        .container { max-width: 100%; margin: 0 auto; }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #2a2a38;
+        }
+        h1 { font-family: 'Syne', sans-serif; font-size: 1.4rem; letter-spacing: -0.01em; }
+        .status { display: flex; gap: 0.75rem; align-items: center; font-size: 0.7rem; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #5a5878; }
+        .status-dot.online { background: #3dffa0; box-shadow: 0 0 6px #3dffa0; }
+        .status-dot.loading { background: #ffc84a; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .card {
+            background: #111118;
+            border: 1px solid #2a2a38;
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .card-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #5a5878;
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        .toggle-icon { font-size: 1rem; transition: transform 0.2s; }
+        .card-body { transition: all 0.2s ease; }
+        .card-body.collapsed { display: none; }
+        .field { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.8rem; }
+        label { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: #5a5878; font-weight: 500; }
+        input, textarea, select {
+            background: #1a1a24;
+            border: 1px solid #2a2a38;
+            border-radius: 10px;
+            padding: 0.8rem;
+            color: #e8e6ff;
+            font-family: 'DM Mono', monospace;
+            font-size: 14px;
+            outline: none;
+            width: 100%;
+        }
+        button {
+            background: #7c6aff;
+            border: none;
+            border-radius: 12px;
+            padding: 0.9rem 1rem;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-top: 0.25rem;
+        }
+        button:active { transform: scale(0.97); background: #6d5cf0; }
+        .btn-secondary { background: #1a1a24; border: 1px solid #3a3a4e; color: #9896b8; }
+        .btn-cancel { background: #1a0a0c; border: 1px solid #ff5e6c; color: #ff5e6c; }
+        .btn-cancel:active { background: #ff5e6c22; }
+        .btn-purge { background: #1a1500; border: 1px solid #ffc84a; color: #ffc84a; }
+        .btn-purge:active { background: #ffc84a22; }
+        .slider-row { display: flex; flex-direction: column; gap: 0.8rem; }
+        .slider-field { width: 100%; }
+        input[type="range"] { padding: 0; height: 6px; background: #22222e; }
+        .upload-zone {
+            border: 1.5px dashed #3a3a4e;
+            border-radius: 14px;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        .upload-zone:hover { border-color: #7c6aff; background: rgba(124,106,255,0.05); }
+        .upload-zone input[type="file"] { display: none; }
+        .preview-img { max-height: 120px; border-radius: 10px; margin-top: 0.5rem; object-fit: contain; width: auto; }
+        .progress-bar { height: 6px; background: #2a2a38; border-radius: 3px; overflow: hidden; margin: 1rem 0; }
+        .progress-fill { width: 0%; height: 100%; background: #7c6aff; transition: width 0.3s; }
+        video { max-width: 100%; border-radius: 14px; margin-top: 0.5rem; width: 100%; }
+        .log-box {
+            background: #0f0f15;
+            border: 1px solid #2a2a38;
+            border-radius: 12px;
+            padding: 0.8rem;
+            max-height: 180px;
+            overflow-y: auto;
+            font-size: 10px;
+            font-family: monospace;
+        }
+        .log-line { padding: 3px 0; border-bottom: 1px solid #1e1e2a; word-break: break-word; }
+        .log-line.info { color: #a593ff; }
+        .log-line.ok { color: #3dffa0; }
+        .log-line.err { color: #ff5e6c; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+        .badge { background: #7c6aff20; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 10px; }
+        .preset-buttons, .capture-options, .vlm-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.5rem; }
+        .preset-buttons button, .capture-options button, .vlm-actions button { flex: 1; min-width: 110px; font-size: 0.85rem; padding: 0.7rem; }
+        hr { border-color: #2a2a38; margin: 0.8rem 0; }
+        .model-search { margin-bottom: 0.5rem; width: 100%; }
+        .info-board {
+            background: #0a0a0f;
+            border: 1px solid #2a2a38;
+            border-radius: 10px;
+            padding: 0.5rem 0.8rem;
+            margin: 0.5rem 0;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.8rem;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: #2a2a38;
+            border-radius: 24px;
+            transition: 0.2s;
+        }
+        .toggle-slider:before {
+            content: '';
+            position: absolute;
+            width: 18px; height: 18px;
+            left: 3px; bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+        .toggle-switch input:checked + .toggle-slider { background: #7c6aff; }
+        .toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); }
+        .toggle-label { font-size: 12px; color: #9896b8; }
+        @media (max-width: 640px) {
+            body { padding: 0.5rem; }
+            .card { padding: 0.8rem; }
+            button { padding: 0.8rem; }
+            input, textarea, select { padding: 0.7rem; font-size: 13px; }
+        }
+        @media (min-width: 768px) {
+            .container { max-width: 1400px; margin: 0 auto; padding: 1rem; }
+            .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+            .slider-row { flex-direction: row; gap: 1.5rem; }
+            button { padding: 0.7rem 1rem; font-size: 0.9rem; }
+            #modelSelect { font-size: 14px; min-height: 200px; }
+            .card { padding: 1.2rem; }
+            .info-board { font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>LTX-2.3 <span style="color:#a593ff">10Eros i2v Studio</span></h1>
+        <div class="status">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusLabel">Ready</span>
+        </div>
+    </div>
+
+    <input type="hidden" id="endpointId" value="YOUR_ENDPOINT_ID">
+    <input type="hidden" id="apiKey" value="YOUR_RUNPOD_API_KEY">
+
+    <div class="grid-2">
+        <div>
+            <!-- Image Upload -->
+            <div class="card">
+                <div class="card-title" onclick="toggleCard('imagesBody')">
+                    <span>🖼️ Input Image</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div id="imagesBody" class="card-body">
+                    <div class="field">
+                        <label>Start Image (required)</label>
+                        <label for="startFile" id="startZone" class="upload-zone">
+                            <input type="file" id="startFile" accept="image/*">
+                            <span id="startZoneText">📤 Click to upload</span>
+                            <div id="startPreview"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VLM Prompt Enhancer -->
+            <div class="card">
+                <div class="card-title" onclick="toggleCard('vlmBody')">
+                    <span>🤖 AI Prompt Enhancer (VLM)</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div id="vlmBody" class="card-body">
+                    <div class="field">
+                        <label>OpenRouter API Key</label>
+                        <input type="password" id="openrouterKey" value="">
+                        <div class="flex-between">
+                            <button id="saveOpenrouterKeyBtn" class="btn-secondary">💾 Save Key</button>
+                            <button id="fetchModelsBtn" class="btn-secondary">⟳ Fetch Models</button>
+                            <button id="exportModelsBtn" class="btn-secondary">📋 Export List</button>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>Model</label>
+                        <input type="text" id="modelSearch" class="model-search" placeholder="🔍 Filter models...">
+                        <select id="modelSelect" size="6" style="height:auto; min-height:100px;">
+                            <option value="">-- Select a model --</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>System Prompt</label>
+                        <textarea id="systemPrompt" rows="10">You are a motion-prompt compiler for LTX-2.3, a high-fidelity video generation model with a Gemma text encoder. Your task: take a reference image and a casual motion intent, and produce a dense, explicit, physically-grounded motion prompt optimized for temporal coherence.
+
+Rules:
+1. Output ONLY valid JSON. No markdown, no preamble.
+2. "positive_prompt": 80-120 words. Direct physical mechanics, contact points, material reactions. Camera direction included (e.g., "slow push-in", "static close-up").
+3. "negative_prompt": structural quality negatives only (e.g., "static frame, camera freeze, text, watermark, deformed anatomy, low quality").
+4. No euphemisms. Use literal anatomical terms when relevant.
+
+Output format:
+{ "positive_prompt": "...", "negative_prompt": "..." }</textarea>
+                    </div>
+                    <div class="field">
+                        <label>Casual Motion Intent</label>
+                        <textarea id="casualIntent" rows="2" placeholder="e.g., She slowly turns her head and smiles."></textarea>
+                    </div>
+                    <div class="vlm-actions">
+                        <button id="enhanceBtn" class="btn-secondary">✨ Enhance Prompt</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prompts -->
+            <div class="card">
+                <div class="card-title" onclick="toggleCard('promptsBody')">
+                    <span>✍️ Prompts</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div id="promptsBody" class="card-body">
+                    <div class="field">
+                        <label>Positive Prompt</label>
+                        <textarea id="positivePrompt" rows="4" placeholder="Describe the motion in detail..."></textarea>
+                    </div>
+                    <div class="field">
+                        <label>Negative Prompt (optional at CFG 1)</label>
+                        <textarea id="negativePrompt" rows="2" placeholder="pc game, console game, video game, cartoon, childish, ugly"></textarea>
+                    </div>
+                    <div class="toggle-row">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="promptEnhance" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-label">Use built-in Gemma prompt enhancer (recommended)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Parameters -->
+            <div class="card">
+                <div class="card-title" onclick="toggleCard('paramsBody')">
+                    <span>⚙️ Parameters</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div id="paramsBody" class="card-body">
+                    <div class="slider-row">
+                        <div class="field">
+                            <label>Duration (sec) <span id="durationVal">5</span></label>
+                            <input type="range" id="duration" min="2" max="15" step="1" value="5">
+                        </div>
+                        <div class="field">
+                            <label>FPS <span id="fpsVal">25</span></label>
+                            <input type="range" id="fps" min="8" max="30" step="1" value="25">
+                        </div>
+                    </div>
+                    <div class="slider-row">
+                        <div class="field"><label>Width</label>
+                            <select id="width">
+                                <option>768</option>
+                                <option selected>1280</option>
+                                <option>1536</option>
+                            </select>
+                        </div>
+                        <div class="field"><label>Height</label>
+                            <select id="height">
+                                <option>512</option>
+                                <option selected>720</option>
+                                <option>1024</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>Seed <span id="seedVal">42</span></label>
+                        <input type="range" id="seed" min="0" max="9999" value="42">
+                    </div>
+                </div>
+            </div>
+
+            <!-- LoRA -->
+            <div class="card">
+                <div class="card-title" onclick="toggleCard('loraBody')">
+                    <span>🎛️ Transition LoRA</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div id="loraBody" class="card-body">
+                    <div class="toggle-row">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="useTransitionLora">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-label">Enable ltx2.3-transition.safetensors</span>
+                    </div>
+                    <div class="slider-field">
+                        <label>Transition LoRA Strength <span id="transitionStrengthVal">0.70</span></label>
+                        <input type="range" id="transitionStrength" min="0" max="1" step="0.05" value="0.70">
+                    </div>
+                    <p style="font-size:10px; color:#5a5878; margin-top:0.5rem;">Smooths motion between start and end states. Use 0.5–0.8 for subtle effect.</p>
+                </div>
+            </div>
+
+            <!-- Presets -->
+            <div class="card">
+                <div class="card-title" onclick="toggleCard('presetsBody')">
+                    <span>💾 Presets</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div id="presetsBody" class="card-body">
+                    <div class="preset-buttons">
+                        <button id="savePresetBtn" class="btn-secondary">Save Current</button>
+                        <button id="loadPresetBtn" class="btn-secondary">Load Last</button>
+                        <button id="resetDefaultBtn" class="btn-secondary">Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <button id="generateBtn">✨ Generate Video</button>
+            <button id="cancelBtn" class="btn-cancel" style="margin-top:0.5rem; display:none;">⛔ Cancel</button>
+            <button id="purgeBtn" class="btn-purge" style="margin-top:0.5rem;">🧹 Purge Queue</button>
+        </div>
+
+        <div>
+            <div class="card">
+                <div class="card-title">🎬 Output</div>
+                <div id="progressArea" style="display:none;">
+                    <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+                    <div id="progressStatus" class="badge">⏳ Waiting...</div>
+                </div>
+                <div id="videoContainer" style="display:none;">
+                    <video id="outputVideo" controls autoplay loop muted playsinline style="width:100%"></video>
+                    <div class="info-board" id="genTimeInfo">⏱️ Generation time: -- &nbsp;|&nbsp; 💰 Cost: --</div>
+                    <div style="display:flex; gap:0.6rem; margin-top:0.5rem; flex-wrap:wrap;">
+                        <button id="downloadBtn" class="btn-secondary">⬇ Download</button>
+                        <button id="copyEmbedBtn" class="btn-secondary">📋 Copy Embed</button>
+                        <button id="clearBtn" class="btn-secondary">🗑 Clear</button>
+                    </div>
+                    <hr>
+                    <div class="card-title">🎞️ Frame Chaining</div>
+                    <div class="capture-options">
+                        <button id="captureStartBtn" class="btn-secondary">📸 Last Frame → Start</button>
+                    </div>
+                    <p style="font-size:10px; color:#5a5878; margin-top:0.5rem;">Capture last frame to chain generations.</p>
+                </div>
+                <div id="placeholderMsg" style="color:#5a5878; text-align:center; padding:1rem;">Video will appear here.</div>
+            </div>
+
+            <div class="card">
+                <div class="card-title" onclick="toggleCard('logBody')">
+                    <span>📜 Log</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div id="logBody" class="card-body">
+                    <div id="logBox" class="log-box"><div class="log-line info">● Ready – upload an image to begin.</div></div>
+                    <button id="copyPayloadBtn" class="btn-secondary" style="margin-top:0.5rem;">📋 Copy last payload</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ── DOM refs ──────────────────────────────────────────────────────────────
+    const endpointInput     = document.getElementById('endpointId');
+    const apiKeyInput       = document.getElementById('apiKey');
+    const generateBtn       = document.getElementById('generateBtn');
+    const startZone         = document.getElementById('startZone');
+    const startFile         = document.getElementById('startFile');
+    const positivePrompt    = document.getElementById('positivePrompt');
+    const negativePrompt    = document.getElementById('negativePrompt');
+    const promptEnhance     = document.getElementById('promptEnhance');
+    const durationSlider    = document.getElementById('duration');
+    const fpsSlider         = document.getElementById('fps');
+    const seedSlider        = document.getElementById('seed');
+    const widthSelect       = document.getElementById('width');
+    const heightSelect      = document.getElementById('height');
+    const useTransitionLora = document.getElementById('useTransitionLora');
+    const transitionStrength= document.getElementById('transitionStrength');
+    const statusDot         = document.getElementById('statusDot');
+    const statusLabel       = document.getElementById('statusLabel');
+    const progressArea      = document.getElementById('progressArea');
+    const progressFill      = document.getElementById('progressFill');
+    const progressStatus    = document.getElementById('progressStatus');
+    const videoContainer    = document.getElementById('videoContainer');
+    const outputVideo       = document.getElementById('outputVideo');
+    const placeholderMsg    = document.getElementById('placeholderMsg');
+    const logBox            = document.getElementById('logBox');
+    const genTimeInfo       = document.getElementById('genTimeInfo');
+    const openrouterKeyInput= document.getElementById('openrouterKey');
+    const modelSelect       = document.getElementById('modelSelect');
+    const modelSearch       = document.getElementById('modelSearch');
+    const systemPromptTextarea = document.getElementById('systemPrompt');
+    const casualIntent      = document.getElementById('casualIntent');
+    const enhanceBtn        = document.getElementById('enhanceBtn');
+
+    let startImageBase64 = null;
+    let currentJobId = null;
+    let pollInterval = null;
+    let isGenerating = false;
+    let videoBlob = null;
+    let videoUrl = null;
+    let lastPayload = null;
+    let allModels = [];
+    let generationStartTime = null;
+
+    // ── Slider displays ───────────────────────────────────────────────────────
+    durationSlider.addEventListener('input', () => document.getElementById('durationVal').innerText = durationSlider.value);
+    fpsSlider.addEventListener('input', () => document.getElementById('fpsVal').innerText = fpsSlider.value);
+    seedSlider.addEventListener('input', () => document.getElementById('seedVal').innerText = seedSlider.value);
+    transitionStrength.addEventListener('input', () => document.getElementById('transitionStrengthVal').innerText = parseFloat(transitionStrength.value).toFixed(2));
+
+    // ── Card toggle ───────────────────────────────────────────────────────────
+    window.toggleCard = function(bodyId) {
+        const body = document.getElementById(bodyId);
+        if(body) {
+            body.classList.toggle('collapsed');
+            const icon = body.parentElement.querySelector('.toggle-icon');
+            if(icon) icon.innerHTML = body.classList.contains('collapsed') ? '▶' : '▼';
+        }
+    };
+
+    // ── Image upload ──────────────────────────────────────────────────────────
+    startFile.addEventListener('change', () => {
+        if(startFile.files && startFile.files[0]) processFile(startFile.files[0]);
+    });
+    startZone.addEventListener('dragover', e => { e.preventDefault(); startZone.style.borderColor = '#7c6aff'; });
+    startZone.addEventListener('dragleave', () => startZone.style.borderColor = '');
+    startZone.addEventListener('drop', e => {
+        e.preventDefault();
+        startZone.style.borderColor = '';
+        const file = e.dataTransfer.files[0];
+        if(file && file.type.startsWith('image/')) processFile(file);
+    });
+    function processFile(file) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+            const full = ev.target.result;
+            startImageBase64 = full.includes(',') ? full.split(',',1)[1] || full.split(',').slice(1).join(',') : full;
+            // simpler split:
+            const commaIdx = full.indexOf(',');
+            startImageBase64 = commaIdx !== -1 ? full.substring(commaIdx+1) : full;
+            document.getElementById('startPreview').innerHTML = `<img src="${full}" class="preview-img">`;
+            document.getElementById('startZoneText').style.display = 'none';
+            log(`Image loaded: ${file.name}`, 'ok');
+            updateUI();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // ── UI state ──────────────────────────────────────────────────────────────
+    function updateUI() {
+        const hasImage = !!startImageBase64;
+        const hasCreds = !!(endpointInput.value.trim() && apiKeyInput.value.trim());
+        generateBtn.disabled = !hasImage || !hasCreds || isGenerating;
+        if(hasImage && hasCreds) { statusDot.className = 'status-dot online'; statusLabel.innerText = 'Ready'; }
+        else { statusDot.className = 'status-dot'; statusLabel.innerText = hasImage ? 'Set API keys' : 'Upload image'; }
+    }
+
+    // ── Payload builder ───────────────────────────────────────────────────────
+    function buildPayload() {
+        return {
+            input: {
+                image_base64: startImageBase64,
+                prompt: positivePrompt.value.trim() || "gentle motion, cinematic, natural movement",
+                negative_prompt: negativePrompt.value.trim() || "",
+                prompt_enhance: promptEnhance.checked,
+                duration: parseInt(durationSlider.value),
+                fps: parseInt(fpsSlider.value),
+                width: parseInt(widthSelect.value),
+                height: parseInt(heightSelect.value),
+                seed: parseInt(seedSlider.value),
+                use_transition_lora: useTransitionLora.checked,
+                transition_lora_strength: parseFloat(transitionStrength.value)
+            }
+        };
+    }
+
+    // ── Logging ───────────────────────────────────────────────────────────────
+    function log(msg, type='info') {
+        const div = document.createElement('div');
+        div.className = `log-line ${type}`;
+        div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        logBox.appendChild(div);
+        div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // ── Presets ───────────────────────────────────────────────────────────────
+    function saveAllState() {
+        localStorage.setItem('ltx23_state', JSON.stringify({
+            positive: positivePrompt.value,
+            negative: negativePrompt.value,
+            casualIntent: casualIntent.value,
+            systemPrompt: systemPromptTextarea.value,
+            duration: durationSlider.value,
+            fps: fpsSlider.value,
+            seed: seedSlider.value,
+            width: widthSelect.value,
+            height: heightSelect.value,
+            promptEnhance: promptEnhance.checked,
+            useTransitionLora: useTransitionLora.checked,
+            transitionStrength: transitionStrength.value,
+            openrouterKey: openrouterKeyInput.value
+        }));
+    }
+    function loadAllState() {
+        const raw = localStorage.getItem('ltx23_state');
+        if(!raw) return;
+        try {
+            const s = JSON.parse(raw);
+            if(s.positive) positivePrompt.value = s.positive;
+            if(s.negative) negativePrompt.value = s.negative;
+            if(s.casualIntent) casualIntent.value = s.casualIntent;
+            if(s.systemPrompt) systemPromptTextarea.value = s.systemPrompt;
+            if(s.duration) durationSlider.value = s.duration;
+            if(s.fps) fpsSlider.value = s.fps;
+            if(s.seed) seedSlider.value = s.seed;
+            if(s.width && widthSelect.querySelector(`option[value="${s.width}"]`)) widthSelect.value = s.width;
+            if(s.height && heightSelect.querySelector(`option[value="${s.height}"]`)) heightSelect.value = s.height;
+            if(s.promptEnhance !== undefined) promptEnhance.checked = s.promptEnhance;
+            if(s.useTransitionLora !== undefined) useTransitionLora.checked = s.useTransitionLora;
+            if(s.transitionStrength) transitionStrength.value = s.transitionStrength;
+            if(s.openrouterKey) openrouterKeyInput.value = s.openrouterKey;
+            [durationSlider, fpsSlider, seedSlider, transitionStrength].forEach(el => el.dispatchEvent(new Event('input')));
+        } catch(e) {}
+    }
+    function attachAutoSave() {
+        [positivePrompt, negativePrompt, casualIntent, systemPromptTextarea,
+         durationSlider, fpsSlider, seedSlider, widthSelect, heightSelect,
+         promptEnhance, useTransitionLora, transitionStrength, openrouterKeyInput]
+        .forEach(el => { el.addEventListener('input', saveAllState); el.addEventListener('change', saveAllState); });
+    }
+    document.getElementById('savePresetBtn').addEventListener('click', () => { saveAllState(); log('Preset saved', 'ok'); });
+    document.getElementById('loadPresetBtn').addEventListener('click', () => { loadAllState(); log('Preset loaded', 'ok'); });
+    document.getElementById('resetDefaultBtn').addEventListener('click', () => {
+        positivePrompt.value = '';
+        negativePrompt.value = '';
+        durationSlider.value = 5;
+        fpsSlider.value = 25;
+        seedSlider.value = 42;
+        widthSelect.value = '1280';
+        heightSelect.value = '720';
+        promptEnhance.checked = true;
+        useTransitionLora.checked = false;
+        transitionStrength.value = 0.70;
+        [durationSlider, fpsSlider, seedSlider, transitionStrength].forEach(el => el.dispatchEvent(new Event('input')));
+        log('Reset to defaults', 'info');
+        saveAllState();
+    });
+
+    // ── Payload copy ──────────────────────────────────────────────────────────
+    document.getElementById('copyPayloadBtn').addEventListener('click', () => {
+        if(!lastPayload) { log('No payload yet', 'info'); return; }
+        const s = JSON.stringify(lastPayload, null, 2);
+        navigator.clipboard ? navigator.clipboard.writeText(s).then(() => log('Payload copied', 'ok')) : log('Copy not available', 'err');
+    });
+
+    // ── Frame capture ─────────────────────────────────────────────────────────
+    document.getElementById('captureStartBtn').addEventListener('click', async () => {
+        const video = outputVideo;
+        if(!video || !video.videoWidth) { log('No video loaded', 'err'); return; }
+        video.currentTime = video.duration - 0.05;
+        await new Promise(resolve => { video.onseeked = resolve; });
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+        startImageBase64 = dataUrl.split(',')[1];
+        document.getElementById('startPreview').innerHTML = `<img src="${dataUrl}" class="preview-img">`;
+        log('Last frame → new start image', 'ok');
+        updateUI();
+        video.currentTime = 0;
+    });
+
+    // ── OpenRouter / VLM ──────────────────────────────────────────────────────
+    function extractJSONFromString(str) {
+        let s = str.replace(/^\uFEFF/, '').trim().replace(/```json\s*|\s*```/g, '');
+        const f = s.indexOf('{'), l = s.lastIndexOf('}');
+        if(f !== -1 && l !== -1 && l > f) s = s.substring(f, l+1);
+        return s.replace(/,\s*}/g, '}').replace(/,\s*\]/g, ']');
+    }
+    document.getElementById('saveOpenrouterKeyBtn').addEventListener('click', () => {
+        localStorage.setItem('openrouter_api_key', openrouterKeyInput.value);
+        log('OpenRouter key saved', 'ok');
+        saveAllState();
+        fetchModels();
+    });
+    const storedKey = localStorage.getItem('openrouter_api_key');
+    if(storedKey) openrouterKeyInput.value = storedKey;
+
+    async function fetchModels() {
+        const key = openrouterKeyInput.value.trim();
+        if(!key) { log('No OpenRouter key', 'err'); return; }
+        log('Fetching models...', 'info');
+        try {
+            const res = await fetch('https://openrouter.ai/api/v1/models', { headers: { 'Authorization': `Bearer ${key}` } });
+            if(!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            allModels = data.data.sort((a,b) => (a.name||a.id).localeCompare(b.name||b.id));
+            populateModelDropdown(allModels);
+            log(`${allModels.length} models loaded`, 'ok');
+        } catch(e) {
+            log(`Fetch models failed: ${e.message}`, 'err');
+        }
+    }
+    function populateModelDropdown(models) {
+        modelSelect.innerHTML = '';
+        if(!models.length) { modelSelect.innerHTML = '<option>-- No models --</option>'; return; }
+        models.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.id;
+            opt.textContent = `${m.name||m.id}`;
+            modelSelect.appendChild(opt);
+        });
+        const saved = localStorage.getItem('selected_model');
+        if(saved && [...modelSelect.options].some(o => o.value === saved)) modelSelect.value = saved;
+    }
+    modelSearch.addEventListener('input', () => {
+        const q = modelSearch.value.toLowerCase();
+        populateModelDropdown(q ? allModels.filter(m => (m.name||m.id).toLowerCase().includes(q)) : allModels);
+    });
+    modelSelect.addEventListener('change', () => localStorage.setItem('selected_model', modelSelect.value));
+    document.getElementById('fetchModelsBtn').addEventListener('click', fetchModels);
+    document.getElementById('exportModelsBtn').addEventListener('click', () => {
+        const blob = new Blob([allModels.map(m => `${m.name||m.id}\n${m.id}`).join('\n\n')], {type:'text/plain'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `openrouter_models_${new Date().toISOString().slice(0,10)}.txt`; a.click();
+    });
+
+    async function resizeImageToBase64(b64, maxSize=1024, quality=0.9) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                let w = img.width, h = img.height;
+                if(w > maxSize || h > maxSize) {
+                    if(w > h) { h = (h/w)*maxSize; w = maxSize; }
+                    else { w = (w/h)*maxSize; h = maxSize; }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = reject;
+            img.src = `data:image/jpeg;base64,${b64}`;
+        });
+    }
+
+    enhanceBtn.addEventListener('click', async () => {
+        if(!startImageBase64) { log('Upload an image first', 'err'); return; }
+        const key = openrouterKeyInput.value.trim();
+        if(!key) { log('Enter OpenRouter key', 'err'); return; }
+        const model = modelSelect.value;
+        if(!model) { log('Select a model', 'err'); return; }
+        const intent = casualIntent.value.trim();
+        if(!intent) { log('Enter a casual intent', 'err'); return; }
+        enhanceBtn.disabled = true; enhanceBtn.textContent = '⏳ Enhancing...';
+        log(`Calling ${model}...`, 'info');
+        try {
+            const resizedDataUrl = await resizeImageToBase64(startImageBase64);
+            const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                body: JSON.stringify({
+                    model,
+                    messages: [
+                        { role: 'system', content: systemPromptTextarea.value },
+                        { role: 'user', content: [
+                            { type: 'text', text: `Casual motion intent: ${intent}` },
+                            { type: 'image_url', image_url: { url: resizedDataUrl } }
+                        ]}
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if(!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            const parsed = JSON.parse(extractJSONFromString(data.choices[0].message.content));
+            if(parsed.positive_prompt) positivePrompt.value = parsed.positive_prompt;
+            if(parsed.negative_prompt !== undefined) negativePrompt.value = parsed.negative_prompt;
+            log('✅ Prompt enhanced', 'ok');
+            saveAllState();
+        } catch(e) {
+            log(`Enhance failed: ${e.message}`, 'err');
+        } finally {
+            enhanceBtn.disabled = false; enhanceBtn.textContent = '✨ Enhance Prompt';
+        }
+    });
+
+    // ── Generate ──────────────────────────────────────────────────────────────
+    async function generate() {
+        if(isGenerating) return;
+        const endpoint = endpointInput.value.trim();
+        const apiKey = apiKeyInput.value.trim();
+        if(!endpoint || !apiKey || !startImageBase64) { log('Missing credentials or image', 'err'); return; }
+        if(pollInterval) clearInterval(pollInterval);
+        videoContainer.style.display = 'none';
+        placeholderMsg.style.display = 'block';
+        if(videoUrl) URL.revokeObjectURL(videoUrl);
+        progressArea.style.display = 'block';
+        progressFill.style.width = '0%';
+        progressStatus.innerText = 'Submitting...';
+        isGenerating = true;
+        generateBtn.disabled = true;
+        document.getElementById('cancelBtn').style.display = 'block';
+        statusDot.className = 'status-dot loading';
+        statusLabel.innerText = 'Generating';
+        generationStartTime = Date.now();
+
+        const payload = buildPayload();
+        lastPayload = payload;
+        log(`Submitting | duration=${payload.input.duration}s fps=${payload.input.fps} ${payload.input.width}x${payload.input.height}`, 'info');
+
+        try {
+            const res = await fetch(`https://api.runpod.ai/v2/${endpoint}/run`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify(payload)
+            });
+            if(!res.ok) { const t = await res.text(); throw new Error(`HTTP ${res.status}: ${t.substring(0,200)}`); }
+            const { id } = await res.json();
+            currentJobId = id;
+            log(`✅ Job submitted: ${id}`, 'ok');
+            progressFill.style.width = '10%';
+            progressStatus.innerText = 'Queued...';
+            startPolling(endpoint, apiKey);
+        } catch(e) { log(`❌ Submit error: ${e.message}`, 'err'); resetUIGeneration(); }
+    }
+
+    function startPolling(endpoint, apiKey) {
+        let progress = 10;
+        pollInterval = setInterval(async () => {
+            try {
+                const res = await fetch(`https://api.runpod.ai/v2/${endpoint}/status/${currentJobId}`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+                if(!res.ok) throw new Error(`Status HTTP ${res.status}`);
+                const data = await res.json();
+                if(data.status === 'IN_QUEUE') {
+                    progress = Math.min(25, progress+2);
+                    progressFill.style.width = progress+'%';
+                    progressStatus.innerText = 'In queue...';
+                } else if(data.status === 'IN_PROGRESS') {
+                    progress = Math.min(85, progress+4);
+                    progressFill.style.width = progress+'%';
+                    progressStatus.innerText = 'Generating...';
+                } else if(data.status === 'COMPLETED') {
+                    clearInterval(pollInterval);
+                    progressFill.style.width = '100%';
+                    progressStatus.innerText = 'Complete!';
+                    if(data.output && data.output.video) handleSuccess(data.output.video);
+                    else throw new Error(`No video in response: ${JSON.stringify(data.output)}`);
+                } else if(data.status === 'FAILED') {
+                    clearInterval(pollInterval);
+                    log(`❌ Job failed: ${JSON.stringify(data.error)}`, 'err');
+                    resetUIGeneration();
+                }
+            } catch(e) { log(`Poll error: ${e.message}`, 'err'); }
+        }, 4000);
+    }
+
+    function handleSuccess(videoBase64) {
+        let raw = videoBase64;
+        if(raw.includes('base64,')) raw = raw.split('base64,')[1];
+        try {
+            const binary = atob(raw);
+            const bytes = new Uint8Array(binary.length);
+            for(let i=0; i<binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            videoBlob = new Blob([bytes], { type: 'video/mp4' });
+            videoUrl = URL.createObjectURL(videoBlob);
+            outputVideo.src = videoUrl;
+            videoContainer.style.display = 'block';
+            placeholderMsg.style.display = 'none';
+            progressArea.style.display = 'none';
+            const elapsed = ((Date.now() - generationStartTime) / 1000).toFixed(1);
+            const cost = (parseFloat(elapsed) * 0.00044).toFixed(4);
+            genTimeInfo.innerHTML = `⏱️ <strong>${elapsed}s</strong> &nbsp;|&nbsp; 💰 <strong>$${cost}</strong>`;
+            log(`🎉 Video ready! (${elapsed}s)`, 'ok');
+        } catch(e) { log(`Video decode error: ${e.message}`, 'err'); }
+        finally { resetUIGeneration(); }
+    }
+
+    function resetUIGeneration() {
+        if(pollInterval) clearInterval(pollInterval);
+        isGenerating = false;
+        currentJobId = null;
+        document.getElementById('cancelBtn').style.display = 'none';
+        generateBtn.disabled = !(startImageBase64 && endpointInput.value.trim() && apiKeyInput.value.trim());
+        statusDot.className = (startImageBase64 && endpointInput.value.trim() && apiKeyInput.value.trim()) ? 'status-dot online' : 'status-dot';
+        statusLabel.innerText = (startImageBase64 && endpointInput.value.trim() && apiKeyInput.value.trim()) ? 'Ready' : 'Waiting';
+        progressArea.style.display = 'none';
+    }
+
+    generateBtn.addEventListener('click', generate);
+
+    document.getElementById('cancelBtn').addEventListener('click', async () => {
+        if(!currentJobId) return;
+        const endpoint = endpointInput.value.trim();
+        const apiKey = apiKeyInput.value.trim();
+        try {
+            await fetch(`https://api.runpod.ai/v2/${endpoint}/cancel/${currentJobId}`, {
+                method: 'POST', headers: { 'Authorization': `Bearer ${apiKey}` }
+            });
+            log('Cancel sent', 'ok');
+        } catch(e) { log(`Cancel error: ${e.message}`, 'err'); }
+        resetUIGeneration();
+    });
+
+    document.getElementById('purgeBtn').addEventListener('click', async () => {
+        const endpoint = endpointInput.value.trim();
+        const apiKey = apiKeyInput.value.trim();
+        if(!endpoint || !apiKey) { log('Set endpoint & API key first', 'err'); return; }
+        if(!confirm('⚠️ Purge all pending jobs on this endpoint?')) return;
+        try {
+            const res = await fetch(`https://api.runpod.ai/v2/${endpoint}/purge-queue`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }
+            });
+            const data = await res.json().catch(() => ({}));
+            log(`Queue purged: ${JSON.stringify(data)}`, res.ok ? 'ok' : 'err');
+        } catch(e) { log(`Purge error: ${e.message}`, 'err'); }
+        if(isGenerating) resetUIGeneration();
+    });
+
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+        if(videoUrl) { const a = document.createElement('a'); a.href = videoUrl; a.download = `ltx23_${Date.now()}.mp4`; a.click(); }
+    });
+    document.getElementById('copyEmbedBtn').addEventListener('click', () => {
+        if(videoUrl) navigator.clipboard?.writeText(`<video src="${videoUrl}" controls autoplay loop muted playsinline></video>`);
+    });
+    document.getElementById('clearBtn').addEventListener('click', () => {
+        videoContainer.style.display = 'none';
+        placeholderMsg.style.display = 'block';
+        if(videoUrl) URL.revokeObjectURL(videoUrl);
+        videoBlob = null; videoUrl = null;
+        genTimeInfo.innerHTML = '⏱️ Generation time: -- &nbsp;|&nbsp; 💰 Cost: --';
+    });
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    loadAllState();
+    attachAutoSave();
+    updateUI();
+    if(openrouterKeyInput.value.trim()) fetchModels();
+    else log('Enter OpenRouter key to enable VLM prompt enhancer', 'info');
+    log('LTX-2.3 Studio ready.', 'ok');
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+    "title": "LTX-2.3 10Eros i2v",
+    "description": "LTX-2.3 image-to-video serverless endpoint. 10Eros fp8 checkpoint with distilled motion LoRA, Gemma text encoder, spatial upscaler, and optional transition LoRA.",
+    "type": "serverless",
+    "category": "video",
+
+    "config": {
+        "runsOn": "GPU",
+        "containerDiskInGb": 120,
+        "gpuCount": 1,
+        "gpuIds": "ADA_48,ADA_80",
+        "allowedCudaVersions": ["12.4"]
+    }
+}
