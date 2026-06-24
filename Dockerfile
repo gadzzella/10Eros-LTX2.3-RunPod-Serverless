@@ -19,6 +19,8 @@ RUN pip install --no-cache-dir \
     huggingface_hub hf_transfer \
     numpy pillow
 
+RUN pip install --no-cache-dir sageattention --no-build-isolation
+
 # ── ComfyUI ──────────────────────────────────────────────────────────────────
 RUN git clone https://github.com/comfyanonymous/ComfyUI.git /ComfyUI && \
     cd /ComfyUI && pip install --no-cache-dir -r requirements.txt

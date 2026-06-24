@@ -1,16 +1,14 @@
 import runpod
 import os
+import glob
 import websocket
 import base64
 import json
 import uuid
 import logging
 import urllib.request
-import urllib.parse
-import binascii
 import subprocess
 import time
-import copy
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,6 +16,7 @@ logger = logging.getLogger(__name__)
 SERVER_ADDRESS = os.getenv("SERVER_ADDRESS", "127.0.0.1")
 CLIENT_ID = str(uuid.uuid4())
 WORKFLOW_PATH = "/video_ltx2_3_i2v_API.json"
+OUTPUT_DIR = "/ComfyUI/output"
 
 
 def load_workflow():
@@ -40,7 +39,6 @@ def get_history(prompt_id):
 
 
 def save_base64_to_file(b64_data, path):
-    # Strip data URI prefix if present
     if "," in b64_data:
         b64_data = b64_data.split(",", 1)[1]
     decoded = base64.b64decode(b64_data)
@@ -59,8 +57,74 @@ def download_url_to_file(url, path):
     return path
 
 
+def find_video_from_history(history):
+    """Try to extract a video file path from ComfyUI history output."""
+    for node_id, node_output in history.get("outputs", {}).items():
+        logger.info(f"[DEBUG] node {node_id} output keys: {list(node_output.keys())}")
+        for key in ("videos", "video", "gifs", "output", "saved_files", "files"):
+            if key not in node_output:
+                continue
+            items = node_output[key]
+            if not isinstance(items, list):
+                items = [items]
+            for item in items:
+                if not isinstance(item, dict):
+                    logger.info(f"[DEBUG] node {node_id} key={key} item is not dict: {item}")
+                    continue
+                logger.info(f"[DEBUG] node {node_id} key={key} item={item}")
+                # Try fullpath first
+                fullpath = item.get("fullpath")
+                if fullpath and os.path.exists(fullpath):
+                    logger.info(f"[DEBUG] found via fullpath: {fullpath}")
+                    return fullpath
+                # Try subfolder + filename
+                filename = item.get("filename", "")
+                subfolder = item.get("subfolder", "")
+                if filename:
+                    candidate = os.path.join(OUTPUT_DIR, subfolder, filename)
+                    logger.info(f"[DEBUG] trying candidate: {candidate}")
+                    if os.path.exists(candidate):
+                        logger.info(f"[DEBUG] found via candidate: {candidate}")
+                        return candidate
+    return None
+
+
+def find_video_by_glob(job_start_time):
+    """Glob fallback: find the newest video created after job started."""
+    patterns = [
+        f"{OUTPUT_DIR}/**/*.mp4",
+        f"{OUTPUT_DIR}/**/*.webm",
+        f"{OUTPUT_DIR}/**/*.mkv",
+    ]
+    candidates = []
+    for pat in patterns:
+        candidates.extend(glob.glob(pat, recursive=True))
+
+    logger.info(f"[DEBUG] glob found {len(candidates)} video files total")
+
+    # Filter to files created at or after job start
+    fresh = [f for f in candidates if os.path.getmtime(f) >= job_start_time]
+    logger.info(f"[DEBUG] glob found {len(fresh)} files newer than job start: {fresh}")
+
+    if fresh:
+        newest = max(fresh, key=os.path.getmtime)
+        logger.info(f"[DEBUG] returning newest: {newest}")
+        return newest
+
+    # Last resort: return absolute newest file regardless of time
+    if candidates:
+        newest = max(candidates, key=os.path.getmtime)
+        logger.info(f"[DEBUG] time-filter found nothing; returning absolute newest: {newest}")
+        return newest
+
+    return None
+
+
 def get_videos(ws, prompt):
+    job_start_time = time.time()
     prompt_id = queue_prompt(prompt)["prompt_id"]
+    logger.info(f"[DEBUG] queued prompt_id={prompt_id}")
+
     while True:
         out = ws.recv()
         if isinstance(out, str):
@@ -68,23 +132,35 @@ def get_videos(ws, prompt):
             if msg["type"] == "executing":
                 data = msg["data"]
                 if data["node"] is None and data["prompt_id"] == prompt_id:
+                    logger.info("[DEBUG] ComfyUI execution finished signal received")
                     break
-    history = get_history(prompt_id)[prompt_id]
-    for node_id in history["outputs"]:
-        node_output = history["outputs"][node_id]
-        # SaveVideo outputs under "videos" key
-        if "videos" in node_output:
-            for video in node_output["videos"]:
-                fullpath = video.get("fullpath") or os.path.join(
-                    "/ComfyUI/output", video.get("subfolder", ""), video["filename"]
-                )
-                with open(fullpath, "rb") as f:
-                    return base64.b64encode(f.read()).decode("utf-8")
-        # Fallback: gifs (VideoHelperSuite)
-        if "gifs" in node_output:
-            for video in node_output["gifs"]:
-                with open(video["fullpath"], "rb") as f:
-                    return base64.b64encode(f.read()).decode("utf-8")
+
+    history_raw = get_history(prompt_id)
+    logger.info(f"[DEBUG] history keys: {list(history_raw.keys())}")
+
+    job_history = history_raw.get(prompt_id, {})
+    logger.info(f"[DEBUG] job_history top-level keys: {list(job_history.keys())}")
+
+    # Check for ComfyUI-reported errors
+    status = job_history.get("status", {})
+    if status.get("status_str") == "error" or not status.get("completed", True):
+        messages = status.get("messages", [])
+        logger.error(f"[ERROR] ComfyUI reported error status. Messages: {messages}")
+        raise Exception(f"ComfyUI workflow error: {messages}")
+
+    # Strategy 1: parse history outputs
+    video_path = find_video_from_history(job_history)
+    if video_path:
+        return video_path
+
+    logger.info("[DEBUG] history strategy found nothing, falling back to glob")
+
+    # Strategy 2: glob for new files
+    video_path = find_video_by_glob(job_start_time)
+    if video_path:
+        return video_path
+
+    logger.error("[ERROR] No video found via history or glob")
     return None
 
 
@@ -119,40 +195,21 @@ def handler(job):
     # ── Load & patch workflow ─────────────────────────────────────────────────
     prompt = load_workflow()
 
-    # Image
     prompt["269"]["inputs"]["image"] = image_path
-
-    # Prompt text
     if "prompt" in job_input:
         prompt["320:319"]["inputs"]["value"] = job_input["prompt"]
-
-    # Prompt enhance toggle (default: True)
     prompt["320:328"]["inputs"]["value"] = bool(job_input.get("prompt_enhance", True))
-
-    # Resolution
     prompt["320:312"]["inputs"]["value"] = int(job_input.get("width", 1280))
     prompt["320:299"]["inputs"]["value"] = int(job_input.get("height", 720))
-
-    # Duration (seconds) and FPS
     prompt["320:301"]["inputs"]["value"] = int(job_input.get("duration", 5))
     prompt["320:300"]["inputs"]["value"] = int(job_input.get("fps", 25))
-
-    # Seeds
     seed = int(job_input.get("seed", 42))
     prompt["320:276"]["inputs"]["noise_seed"] = seed
-    prompt["320:277"]["inputs"]["noise_seed"] = seed + 1  # second sampler gets offset
+    prompt["320:277"]["inputs"]["noise_seed"] = seed + 1
 
-    # Transition LoRA — optional, off by default
-    # Node 320:285 is the distilled motion LoRA loader (LoraLoaderModelOnly)
-    # Node 320:324 is the gemma abliterated LoRA loader (LoraLoader)
-    # Transition LoRA would be an additional loader — inject dynamically if requested
     use_transition = bool(job_input.get("use_transition_lora", False))
     transition_strength = float(job_input.get("transition_lora_strength", 0.7))
-
     if use_transition:
-        # Insert a LoraLoaderModelOnly node chained after node 320:285
-        # Node 320:285 output feeds into 320:314 and 320:282 (CFGGuiders)
-        # We inject a new node "320:999" between 320:285 and the guiders
         prompt["320:999"] = {
             "inputs": {
                 "lora_name": "ltx2.3-transition.safetensors",
@@ -162,7 +219,6 @@ def handler(job):
             "class_type": "LoraLoaderModelOnly",
             "_meta": {"title": "Load Transition LoRA"}
         }
-        # Rewire CFGGuiders to use 320:999 instead of 320:285
         prompt["320:282"]["inputs"]["model"] = ["320:999", 0]
         prompt["320:314"]["inputs"]["model"] = ["320:999", 0]
 
@@ -171,7 +227,7 @@ def handler(job):
 
     ws_url = f"ws://{SERVER_ADDRESS}:8188/ws?clientId={CLIENT_ID}"
     ws = websocket.WebSocket()
-    for attempt in range(36):  # 3 min
+    for attempt in range(36):
         try:
             ws.connect(ws_url)
             logger.info(f"WebSocket connected (attempt {attempt+1})")
@@ -182,12 +238,15 @@ def handler(job):
             time.sleep(5)
 
     try:
-        video_b64 = get_videos(ws, prompt)
+        video_path = get_videos(ws, prompt)
     finally:
         ws.close()
 
-    if video_b64:
+    if video_path and os.path.exists(video_path):
+        with open(video_path, "rb") as f:
+            video_b64 = base64.b64encode(f.read()).decode("utf-8")
         return {"video": f"data:video/mp4;base64,{video_b64}"}
+
     return {"error": "No video output from ComfyUI."}
 
 

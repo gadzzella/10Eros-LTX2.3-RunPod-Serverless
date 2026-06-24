@@ -30,7 +30,7 @@ MODELS = [
     (
         "Kijai/LTX2.3_comfy",
         "loras/ltx-2.3-22b-distilled-1.1_lora-dynamic_fro09_avg_rank_111_bf16.safetensors",
-        "/ComfyUI/models/loras/ltx-2.3-22b-distilled-1.1_lora-dynamic_fro09_avg_rank_111_bf16.safetensors",
+        "/ComfyUI/models/loras/ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors",
     ),
 
     # Gemma abliterated LoRA (text encoder LoRA)
