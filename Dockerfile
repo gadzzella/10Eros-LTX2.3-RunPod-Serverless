@@ -62,8 +62,8 @@ RUN cd /ComfyUI/custom_nodes && \
     if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
 
 RUN cd /ComfyUI/custom_nodes && \
-    git clone https://github.com/MaxOfLondon/comfyui-mxtoolkit.git && \
-    cd comfyui-mxtoolkit && \
+    git clone https://github.com/Smirnov75/ComfyUI-mxToolkit.git && \
+    cd ComfyUI-mxToolkit && \
     if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
 
 RUN cd /ComfyUI/custom_nodes && \
