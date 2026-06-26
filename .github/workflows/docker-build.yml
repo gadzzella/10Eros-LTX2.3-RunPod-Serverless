@@ -14,12 +14,30 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Aggressive manual cleanup
         run: |
-          sudo docker system prune -af --volumes || true
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
-          sudo rm -rf /usr/local/share/boost /usr/share/swift /opt/microsoft
+          sudo rm -rf /usr/lib/jvm
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/local/julia*
+          sudo rm -rf /usr/local/share/chromium
+          sudo rm -rf /opt/microsoft /opt/google
+          sudo rm -rf /opt/az
+          sudo rm -rf /usr/local/share/powershell
           sudo apt-get clean
           sudo apt-get autoremove -y
+          docker system prune -af --volumes || true
+          docker builder prune -af || true
           df -h
 
       - name: Set up Docker Buildx

@@ -26,25 +26,11 @@ MODELS = [
         "/ComfyUI/models/text_encoders/gemma_3_12B_it_fp4_mixed.safetensors",
     ),
 
-    # Distilled motion LoRA
+    # Distilled LoRA
     (
-        "Kijai/LTX2.3_comfy",
-        "loras/ltx-2.3-22b-distilled-1.1_lora-dynamic_fro09_avg_rank_111_bf16.safetensors",
-        "/ComfyUI/models/loras/ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors",
-    ),
-
-    # Gemma abliterated LoRA (text encoder LoRA)
-    (
-        "Comfy-Org/ltx-2",
-        "split_files/loras/gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors",
-        "/ComfyUI/models/loras/gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors",
-    ),
-
-    # Transition LoRA
-    (
-        "joyfox/LTX-2.3-Transition-LORA",
-        "ltx2.3-transition.safetensors",
-        "/ComfyUI/models/loras/ltx2.3-transition.safetensors",
+        "TenStrip/LTX2.3_Distilled_Lora_1.1_Experiments",
+        "ltx-2.3-22b-distilled-lora-1.1_fro90_ceil72_condsafe.safetensors",
+        "/ComfyUI/models/loras/ltx-2.3-22b-distilled-lora-1.1_fro90_ceil72_condsafe.safetensors",
     ),
 
     # Spatial upscaler
@@ -52,13 +38,6 @@ MODELS = [
         "Lightricks/LTX-2.3",
         "ltx-2.3-spatial-upscaler-x2-1.1.safetensors",
         "/ComfyUI/models/latent_upscale_models/ltx-2.3-spatial-upscaler-x2-1.1.safetensors",
-    ),
-
-    # Audio VAE
-    (
-        "Kijai/LTX2.3_comfy",
-        "vae/LTX23_audio_vae_bf16.safetensors",
-        "/ComfyUI/models/vae/LTX23_audio_vae_bf16.safetensors",
     ),
 ]
 
