@@ -67,8 +67,8 @@ RUN cd /ComfyUI/custom_nodes && \
     if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
 
 RUN cd /ComfyUI/custom_nodes && \
-    git clone https://github.com/ExponentialML/ComfyUI-ComfyMath.git && \
-    cd ComfyUI-ComfyMath && \
+    git clone https://github.com/evanspearman/ComfyMath.git && \
+    cd ComfyMath && \
     if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
 
 # ── Model directories ─────────────────────────────────────────────────────────
